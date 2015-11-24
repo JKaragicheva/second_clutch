@@ -53,14 +53,14 @@ model {
 
 # model
 for (row in 1:nrow) {
-log(lamda[row])<- Intercept+w_int_double*Intercept_first_clutch_double*FirstClutchDoubleBreeders+w_int*InterceptYear[year[row]]+ #intercept
-    (Slope+w_slope*SlopeYear[year[row]])*Day[row] + # slope for first clutches
+log(lamda[row])<- Intercept+w_int_double*Intercept_first_clutch_double*FirstClutchDoubleBreeders[row]+w_int*InterceptYear[year[row]]+ #intercept
+    (Slope+w_slope*SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
 	(Slope+w_slope*SlopeYear[year[row]]+ SlopeSecondClutch)*DayDiff[row]
 }
 
 for (t in 1:nyears) {
 InterceptYear[t]~dnorm(0, tau_intercept)
-SlopeYear[t]~dnorm(0, tau2)
+SlopeYear[t]~dnorm(0, tau_slope)
 }
 
 #priors
@@ -79,7 +79,7 @@ sigma_slope ~ dunif(0,1)
 
 # likelihood
 for(row in 1:nrow) {
-      Clutch[row] ~ dpois(lamda[row]) T(2,)
+      Clutch[row] ~ dpois(lamda[row]) T(3,)
 }
 }
 ",fill = TRUE)
@@ -88,12 +88,11 @@ sink()
 
 ## 3. Preparing inits and data
 ```{r}
-
 nyears=length(unique(Res$Year))
 
-Data <- list(nrow=nrow(Res), nyears=nyears, year=Res$Year, DayFirst=Res$DayFirst, DayDiff=Res$DayDiff, Clutch=Res$Clutch)
+Data <- list("nrow"=nrow(Res), "nyears"=nyears, "year"=Res$Year, "DayFirst"=Res$DayFirst, "DayDiff"=Res$DayDiff, "Clutch"=Res$Clutch, "FirstClutchDoubleBreeders"=Res$FirstClutchDoubleBreeders)
 
-inits <- function() list("Intercept" = runif(1,-1,3),  "Intercept_first_clutch_double"= runif(1,-1,3), "InterceptYear" = runif(nyears,-1,1), "Slope" =-runif(1,-0.5, 0.5),"SlopeYear" =runif(nyears,-1,1), "SlopeSecondClutch" =runif(1,-1,1), "sigma_intercept"=runif(1, 0,0.5), "sigma_slope"=runif(1,0,1), w_int=rbinom(1, 1, 0.5),w_int_double=rbinom(1, 1, 0.5), w_slope=rbinom(1, 1, 0.5))
+inits <- function() list("Intercept" = runif(1,-1,3),  "Intercept_first_clutch_double"= runif(1,-1,3), "InterceptYear" = runif(nyears,-1,1), "Slope" =-runif(1,-0.5, 0.5),"SlopeYear" =runif(nyears,-1,1), "SlopeSecondClutch" =runif(1,-1,1), "sigma_intercept"=runif(1, 0,0.5), "sigma_slope"=runif(1,0,1), "w_int"=rbinom(1, 1, 0.5),"w_int_double"=rbinom(1, 1, 0.5), "w_slope"=rbinom(1, 1, 0.5))
 
 # Parameters monitored
 params <- c("Intercept", "Intercept_first_clutch_double", "InterceptYear", "Slope", "SlopeYear", "SlopeSecondClutch", "sigma_intercept", "sigma_slope", "w_int", "w_int_double","w_slope")
@@ -105,7 +104,7 @@ This will take consideravle amount of time (a few hours), lower ```n.iter``` if 
 library(R2jags)
 # Call JAGS from R (few hours)
 
-out_ms <- jags.parallel(Data, inits, params, "two_truncated_Poisson_model_with_MS.jags", n.chains = 5, n.thin = 500, n.iter = 250000, n.burnin = 50000, working.directory = getwd())
+out_ms <- jags.parallel(Data, inits, params, "two_truncated_Poisson_model_with_MS.jags", n.chains = 5, n.thin = 500, n.iter = 250000, n.burnin = 50000)
 ```
 
 ##5. Exploring results
