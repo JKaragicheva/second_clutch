@@ -29,14 +29,15 @@ In the data frame we have following columns:
 2. ```$jd``` - julian date
 3. ```$datediff``` - difference between second and first clutches
 4. ```$nclutch``` - observed clutch size
+5. ```$FirstClutchDoubleBreeders``` - 1 if this is the first clutch of a double breeder, otherwise 0.
 
 Note, that ```$datediff``` is 0 for all the first clutches.
 
 ## 2. Format data for the analysis
 ```{r}
-Res<-data.frame(Year=as.numeric(as.factor(allbreeders$nseason)), 
-	DayFirst=scale(allbreeders$jd, scale=F), DayDiff=allbreeders$datediff,
-	Clutch=allbreeders$nclutch)
+Res<-data.frame(Year=as.numeric(as.factor(raw_data$nseason)), 
+	DayFirst=scale(raw_data$jd, scale=F), DayDiff=raw_data$datediff,
+	Clutch=raw_data$nclutch, FirstClutchDoubleBreeders=raw_data$FirstClutchDoubleBreeders)
 ```
 Here we make variable ```$Year``` that is just a numeric year starting from 1.
 We also center ```$jd``` but not scale it
@@ -52,7 +53,7 @@ model {
 
 # model
 for (row in 1:nrow) {
-log(lamda[row])<- Intercept+w_int*InterceptYear[year[row]]+ #intercept
+log(lamda[row])<- Intercept+w_int_double*Intercept_first_clutch_double*FirstClutchDoubleBreeders+w_int*InterceptYear[year[row]]+ #intercept
     (Slope+w_slope*SlopeYear[year[row]])*Day[row] + # slope for first clutches
 	(Slope+w_slope*SlopeYear[year[row]]+ SlopeSecondClutch)*DayDiff[row]
 }
@@ -63,9 +64,11 @@ SlopeYear[t]~dnorm(0, tau2)
 }
 
 #priors
+w_int_double~dbern(0.5)
 w_int~dbern(0.5)
 w_slope~dbern(0.5)
 Intercept ~ dunif(-10,10)
+Intercept_first_clutch_double ~ dunif(-10,10)
 Slope ~dunif(-0.5,0.5)
 SlopeSecondClutch ~dunif(-1,1)
 
@@ -90,10 +93,10 @@ nyears=length(unique(Res$Year))
 
 Data <- list(nrow=nrow(Res), nyears=nyears, year=Res$Year, DayFirst=Res$DayFirst, DayDiff=Res$DayDiff, Clutch=Res$Clutch)
 
-inits <- function() list("Intercept" = runif(1,-1,3),  "InterceptYear" = runif(nyears,-1,1), "Slope" =-runif(1,-0.5, 0.5),"SlopeYear" =runif(nyears,-1,1), "SlopeSecondClutch" =runif(1,-1,1), "sigma_intercept"=runif(1, 0,0.5), "sigma_slope"=runif(1,0,1), w_int=rbinom(1, 1, 0.5), w_slope=rbinom(1, 1, 0.5))
+inits <- function() list("Intercept" = runif(1,-1,3),  "Intercept_first_clutch_double"= runif(1,-1,3), "InterceptYear" = runif(nyears,-1,1), "Slope" =-runif(1,-0.5, 0.5),"SlopeYear" =runif(nyears,-1,1), "SlopeSecondClutch" =runif(1,-1,1), "sigma_intercept"=runif(1, 0,0.5), "sigma_slope"=runif(1,0,1), w_int=rbinom(1, 1, 0.5),w_int_double=rbinom(1, 1, 0.5), w_slope=rbinom(1, 1, 0.5))
 
 # Parameters monitored
-params <- c("Intercept", "InterceptYear", "Slope", "SlopeYear", "SlopeSecondClutch", "sigma_intercept", "sigma_slope", "w_int", "w_slope")
+params <- c("Intercept", "Intercept_first_clutch_double", "InterceptYear", "Slope", "SlopeYear", "SlopeSecondClutch", "sigma_intercept", "sigma_slope", "w_int", "w_int_double","w_slope")
 ```
 
 ## 4. Model run
@@ -110,12 +113,3 @@ out_ms <- jags.parallel(Data, inits, params, "two_truncated_Poisson_model_with_M
 ```{r}
 print(out_ms)
 ```
-
-
-
-
-
-
-
-
-
