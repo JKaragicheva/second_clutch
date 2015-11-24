@@ -6,10 +6,10 @@
 Supplementary Materials S2 to 
 Karagicheva J., Liebers, M., Rakhimberdiev, E., Hallinger K.K., Saveliev A., A., Winkler, D. W. 2015 Differences in size between first and replacement clutches match the seasonal decline in single clutches in Tree Swallows **Tachycineta bicolor**. - Ibis 000: 000-000.
 
-Depends:  
-	R (>= 3.2.0),
-	JAGS (>=4.0.0)
+Depends:  R (>= 3.2.0), JAGS (>=4.0.0)
+
 Authors: Eldar Rakhimberdiev <eldar@nioz.nl> and Julia Karagicheva <jkaraj@gmail.com>
+
 License: GNU GPL v3.0
 
 # 1. Get data from Github
