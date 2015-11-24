@@ -4,15 +4,17 @@
 -->
 
 Supplementary Materials S2 to 
-Karagicheva J., Liebers, M., Rakhimberdiev, E., Hallinger K.K., Saveliev A., A., Winkler, D. W. 2015 Differences in size between first and replacement clutches match the seasonal decline in single clutches in Tree Swallows __Tachycineta bicolor__. - Ibis 000: 000-000.
+Karagicheva J., Liebers, M., Rakhimberdiev, E., Hallinger K.K., Saveliev A., A., Winkler, D. W. 2015 Differences in size between first and replacement clutches match the seasonal decline in single clutches in Tree Swallows _Tachycineta bicolor_. - Ibis 000: 000-000.
 
 Depends:  R (>= 3.2.0), JAGS (>=4.0.0)
 
 Authors: Eldar Rakhimberdiev <eldar@nioz.nl> and Julia Karagicheva <jkaraj@gmail.com>
 
+Date: 24.11.2015
+
 License: GNU GPL v3.0
 
-# 1. Get data from Github
+## 1. Get data from Github
 ```{r}
 library(RCurl)
 
@@ -22,13 +24,15 @@ raw_data<-read.csv(text=text, stringsAsFactors =F)
 str(raw_data)
 ```
 In the data frame we have following columns:
+
 1. ```$nseason``` - Year
 2. ```$jd``` - julian date
 3. ```$datediff``` - difference between second and first clutches
 4. ```$nclutch``` - observed clutch size
+
 Note, that ```$datediff``` is 0 for all the first clutches.
 
-# 2. Format data for the analysis
+## 2. Format data for the analysis
 ```{r}
 Res<-data.frame(Year=as.numeric(as.factor(allbreeders$nseason)), 
 	DayFirst=scale(allbreeders$jd, scale=F), DayDiff=allbreeders$datediff,
@@ -36,11 +40,11 @@ Res<-data.frame(Year=as.numeric(as.factor(allbreeders$nseason)),
 ```
 Here we make variable ```$Year``` that is just a numeric year starting from 1.
 We also center ```$jd``` but not scale it
-
+```{r}
 plot(jitter(log(Res$Clutch))~Res$DayFirst)
+{r}
 
-
-# 3. Bayesian model
+## 3. Bayesian model
 ```{r}
 sink("two_truncated_Poisson_model_with_MS.jags")
 cat("
@@ -79,7 +83,7 @@ for(row in 1:nrow) {
 sink()
 ```
 
-# 3. Preparing inits and data
+## 3. Preparing inits and data
 ```{r}
 
 nyears=length(unique(Res$Year))
@@ -90,9 +94,9 @@ inits <- function() list("Intercept" = runif(1,-1,3),  "InterceptYear" = runif(n
 
 # Parameters monitored
 params <- c("Intercept", "InterceptYear", "Slope", "SlopeYear", "SlopeSecondClutch", "sigma_intercept", "sigma_slope", "w_int", "w_slope")
+```
 
-
-# 4. Model run
+## 4. Model run
 This will take consideravle amount of time (a few hours), lower ```n.iter``` if you want it to finish faster!
 ```{r}
 library(R2jags)
@@ -101,10 +105,10 @@ library(R2jags)
 out_ms <- jags.parallel(Data, inits, params, "two_truncated_Poisson_model_with_MS.jags", n.chains = 5, n.thin = 500, n.iter = 250000, n.burnin = 50000, working.directory = getwd())
 ```
 
-#5. Exploring results
+##5. Exploring results
 
 ```{r}
-out_ms
+print(out_ms)
 ```
 
 
