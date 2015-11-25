@@ -202,7 +202,7 @@ for (row in 1:nrow) {
 log(lamda[row])<- Intercept+w_int_double*InterceptFirstClutchDouble*FirstClutchDoubleBreeders[row]+
                   w_int*InterceptYear[year[row]]+ #intercept
                   (Slope+w_slope*SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
-	          (Slope+w_slope*SlopeYear[year[row]]+ SlopeSecondClutch)*DayDiff[row]
+	          (Slope+w_slope*SlopeYear[year[row]]+ w_slope_second*SlopeSecondClutch)*DayDiff[row]
 }
 
 for (t in 1:nyears) {
@@ -214,6 +214,7 @@ SlopeYear[t]~dnorm(0, tau_slope)
 w_int_double~dbern(0.5)
 w_int~dbern(0.5)
 w_slope~dbern(0.5)
+w_slope_second~dbern(0.5)
 Intercept ~ dunif(-10,10)
 InterceptFirstClutchDouble ~ dunif(-10,10)
 Slope ~dunif(-0.5,0.5)
@@ -251,20 +252,22 @@ inits <- function() list("Intercept" = runif(1,-1,3),
                          "sigma_slope"=runif(1,0,1),
                          "w_int"=rbinom(1, 1, 0.5),
                          "w_int_double"=rbinom(1, 1, 0.5),
-                         "w_slope"=rbinom(1, 1, 0.5))
+                         "w_slope"=rbinom(1, 1, 0.5),
+                         "w_slope_second"=rbinom(1, 1, 0.5))
 
 # Parameters monitored
 params <- c("Intercept", "InterceptFirstClutchDouble", "InterceptYear",
             "Slope", "SlopeYear", "SlopeSecondClutch",
             "sigma_intercept", "sigma_slope",
-            "w_int", "w_int_double","w_slope")
+            "w_int", "w_int_double","w_slope",
+			"w_slope_second")
 ```
 
 ### Model run
-This will take consideravle amount of time (a few hours), lower ```n.iter``` if you want it to finish faster!
+This will take consideravle amount of time (~0.5 hour), lower ```n.iter``` if you want it to finish faster!
 ```{r, eval = F}
 library(R2jags)
-# Call JAGS from R (few hours)
+# Call JAGS from R (~0.5 hour)
 out_ms <- jags.parallel(Data, inits, params, "two_truncated_Poisson_model_with_MS.jags",
                         n.chains = 5, n.thin = 500, n.iter = 250000, n.burnin = 50000)
 save(out_ms, file="model_selection_output.RData")
