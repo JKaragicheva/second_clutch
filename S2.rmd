@@ -45,7 +45,115 @@ We also center ```$jd``` but not scale it
 plot(jitter(log(Res$Clutch))~Res$DayFirst)
 {r}
 
-## 3. Bayesian model
+## Main model w/o model selection
+### Bayesian model
+```{r}
+sink("two_truncated_Poisson_model.jags")
+cat("
+model {
+
+# model
+for (row in 1:nrow) {
+log(lamda[row])<- Intercept+Intercept_first_clutch_double*FirstClutchDoubleBreeders[row]+InterceptYear[year[row]]+ #intercept
+    (Slope+SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
+	(Slope+SlopeYear[year[row]]+ SlopeSecondClutch)*DayDiff[row]
+}
+
+for (t in 1:nyears) {
+InterceptYear[t]~dnorm(0, tau_intercept)
+SlopeYear[t]~dnorm(0, tau_slope)
+}
+
+#priors
+#w_int_double~dbern(0.5)
+#w_int~dbern(0.5)
+#w_slope~dbern(0.5)
+Intercept ~ dunif(-10,10)
+Intercept_first_clutch_double ~ dunif(-10,10)
+Slope ~dunif(-0.5,0.5)
+SlopeSecondClutch ~dunif(-1,1)
+
+tau_intercept<-pow(sigma_intercept, -2)
+sigma_intercept ~ dunif(0,0.5)
+tau_slope<-pow(sigma_slope, -2)
+sigma_slope ~ dunif(0,1)
+
+# likelihood
+for(row in 1:nrow) {
+      Clutch[row] ~ dpois(lamda[row]) T(3,)
+}
+}
+",fill = TRUE)
+sink()
+```
+
+### Inits and data
+```{r}
+nyears=length(unique(Res$Year))
+
+Data <- list("nrow"=nrow(Res), "nyears"=nyears, "year"=Res$Year, "DayFirst"=Res$DayFirst, "DayDiff"=Res$DayDiff, "Clutch"=Res$Clutch, "FirstClutchDoubleBreeders"=Res$FirstClutchDoubleBreeders)
+
+inits <- function() list("Intercept" = runif(1,-1,3),  "Intercept_first_clutch_double"= runif(1,-1,3), "InterceptYear" = runif(nyears,-1,1), "Slope" =-runif(1,-0.5, 0.5),"SlopeYear" =runif(nyears,-1,1), "SlopeSecondClutch" =runif(1,-1,1), "sigma_intercept"=runif(1, 0,0.5), "sigma_slope"=runif(1,0,1))
+
+# Parameters monitored
+params <- c("Intercept", "Intercept_first_clutch_double", "InterceptYear", "Slope", "SlopeYear", "SlopeSecondClutch", "sigma_intercept", "sigma_slope")
+```
+
+### Model run
+This will take consideravle amount of time (a few hours), lower ```n.iter``` if you want it to finish faster!
+```{r}
+library(R2jags)
+# Call JAGS from R (few hours)
+
+out <- jags.parallel(Data, inits, params, "two_truncated_Poisson_model.jags", n.chains = 5, n.thin = 500, n.iter = 250000, n.burnin = 50000)
+
+save(out, file="model_output.RData")
+```
+### Exploring results
+
+```{r}
+print(out_ms)
+#plot original data
+plot(jitter(log(Res$Clutch))~jitter(Res$DayFirst), pch=".", cex=2)
+
+# ok, now overall slope and intercept
+Intercept_pred<-quantile(out_ms$BUGSoutput$sims.list$Intercept, c(0.025, 0.5, 0.075)) 
+Slope_pred<-quantile(out_ms$BUGSoutput$sims.list$Slope, c(0.025, 0.5, 0.075)) 
+
+XX<-seq(min(Res$DayFirst), max(Res$DayFirst))
+Y_main<-Intercept_pred[2]+Slope_pred[2]*XX
+lines(Y_main~XX, lwd=2)
+# now CI
+
+Y_lower<-apply(out_ms$BUGSoutput$sims.list$Slope %*% XX + out_ms$BUGSoutput$sims.list$Intercept[,1], 2, quantile, c(0.025))
+
+Y_upper<-apply(out_ms$BUGSoutput$sims.list$Slope %*% XX + out_ms$BUGSoutput$sims.list$Intercept[,1], 2, quantile, c(0.975))
+
+Y_second_clutch<-apply(out_ms$BUGSoutput$sims.list$Slope %*% XX + out_ms$BUGSoutput$sims.list$Intercept[,1]+out_ms$BUGSoutput$sims.list$Intercept_first_clutch_double[,1]+out_ms$BUGSoutput$sims.list$SlopeSecondClutch %*% XX, 2, quantile, c(0.5))
+
+Y_second_clutch_upper<-apply(out_ms$BUGSoutput$sims.list$Slope %*% XX + out_ms$BUGSoutput$sims.list$Intercept[,1]+out_ms$BUGSoutput$sims.list$Intercept_first_clutch_double[,1]+out_ms$BUGSoutput$sims.list$SlopeSecondClutch %*% XX, 2, quantile, c(0.975))
+Y_second_clutch_lower<-apply(out_ms$BUGSoutput$sims.list$Slope %*% XX + out_ms$BUGSoutput$sims.list$Intercept[,1]+out_ms$BUGSoutput$sims.list$Intercept_first_clutch_double[,1]+out_ms$BUGSoutput$sims.list$SlopeSecondClutch %*% XX, 2, quantile, c(0.025))
+lines(Y_lower~XX)
+lines(Y_upper~XX)
+lines(Y_second_clutch~XX, col="red", lwd=2)
+lines(Y_second_clutch_lower~XX, col="red")
+lines(Y_second_clutch_upper~XX, col="red")
+
+# and now prediction for the second clutches..
+# this will be second clutch intercept
+plot(jitter(Res$Clutch)~jitter(Res$DayFirst), pch=".", cex=2)
+lines(exp(Y_main)~XX, lwd=2)
+lines(exp(Y_upper)~XX)
+lines(exp(Y_second_clutch)~XX, col="red", lwd=2)
+lines(exp(Y_second_clutch_lower)~XX, col="red")
+lines(exp(Y_second_clutch_upper)~XX, col="red")
+
+hist(out_ms$BUGSoutput$sims.list$Intercept_first_clutch_double)
+hist(out_2_trunc$BUGSoutput$sims.list$sigma2)
+```
+## 4. Model with variable selection
+For the variables `Intercept_first_clutch_double`, `InterceptYear`, `SlopeYear`) introduce additional parameters that can take values only of 1 or 0.
+### Bayesian model
 ```{r}
 sink("two_truncated_Poisson_model_with_MS.jags")
 cat("
@@ -86,7 +194,7 @@ for(row in 1:nrow) {
 sink()
 ```
 
-## 3. Preparing inits and data
+###Inits and data
 ```{r}
 nyears=length(unique(Res$Year))
 
@@ -98,17 +206,15 @@ inits <- function() list("Intercept" = runif(1,-1,3),  "Intercept_first_clutch_d
 params <- c("Intercept", "Intercept_first_clutch_double", "InterceptYear", "Slope", "SlopeYear", "SlopeSecondClutch", "sigma_intercept", "sigma_slope", "w_int", "w_int_double","w_slope")
 ```
 
-## 4. Model run
+### Model run
 This will take consideravle amount of time (a few hours), lower ```n.iter``` if you want it to finish faster!
 ```{r}
 library(R2jags)
 # Call JAGS from R (few hours)
-
 out_ms <- jags.parallel(Data, inits, params, "two_truncated_Poisson_model_with_MS.jags", n.chains = 5, n.thin = 500, n.iter = 250000, n.burnin = 50000)
+save(out_ms, file="model_selection_output.RData")
 ```
+### Results exploration
 
-##5. Exploring results
 
-```{r}
-print(out_ms)
-```
+
