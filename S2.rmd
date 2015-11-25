@@ -43,7 +43,7 @@ Here we make variable ```$Year``` that is just a numeric year starting from 1.
 We also center ```$jd``` but not scale it
 ```{r}
 plot(jitter(log(Res$Clutch))~Res$DayFirst)
-{r}
+```
 
 ## Main model w/o model selection
 ### Bayesian model
