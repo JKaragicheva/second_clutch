@@ -47,7 +47,7 @@ We also center ```$jd``` but not scale it
 plot(jitter(log(Res$Clutch))~Res$DayFirst)
 ```
 
-## Main model w/o model selection
+## 3. Main model w/o model selection
 ### Bayesian model
 ```{r, eval = F}
 sink("two_truncated_Poisson_model.jags")
@@ -189,7 +189,7 @@ dev.off()
 #lines(exp(Y_second_clutch_upper)~XX, lty=2)
 ```
 
-## 3. Model with variable selection
+## 4. Model with variable selection
 For the variables `Intercept_first_clutch_double`, `InterceptYear`, `SlopeYear`) introduce additional parameters that can take values only of 1 or 0.
 ### Bayesian model
 ```{r, eval = F}
