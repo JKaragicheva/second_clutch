@@ -17,7 +17,7 @@ License: GNU GPL v3.0
 Permanent address: https://github.com/eldarrak/second_clutch/blob/master/S2.rmd
 
 ## 1. Get data from Github
-```{r}
+```{r, eval = F}
 library(RCurl)
 
 text <-getURL("https://raw.githubusercontent.com/eldarrak/second_clutch/master/raw_data.csv",
@@ -36,20 +36,20 @@ In the data frame we have following columns:
 Note, that ```$datediff``` is 0 for all the first clutches.
 
 ## 2. Format data for the analysis
-```{r}
+```{r, eval = F}
 Res<-data.frame(Year=as.numeric(as.factor(raw_data$nseason)), 
 	DayFirst=scale(raw_data$jd, scale=F), DayDiff=raw_data$datediff,
 	Clutch=raw_data$nclutch, FirstClutchDoubleBreeders=raw_data$FirstClutchDoubleBreeders)
 ```
 Here we make variable ```$Year``` that is just a numeric year starting from 1.
 We also center ```$jd``` but not scale it
-```{r}
+```{r, eval = F}
 plot(jitter(log(Res$Clutch))~Res$DayFirst)
 ```
 
 ## Main model w/o model selection
 ### Bayesian model
-```{r}
+```{r, eval = F}
 sink("two_truncated_Poisson_model.jags")
 cat("
 model {
@@ -91,7 +91,7 @@ sink()
 ```
 
 ### Inits and data
-```{r}
+```{r, eval = F}
 nyears=length(unique(Res$Year))
 
 Data <- list("nrow"=nrow(Res), "nyears"=nyears, "year"=Res$Year, "DayFirst"=Res$DayFirst, 
@@ -114,7 +114,7 @@ params <- c("Intercept", "InterceptFirstClutchDouble", "InterceptYear",
 
 ### Model run
 This will take consideravle amount of time (a few hours), lower ```n.iter``` if you want it to finish faster!
-```{r}
+```{r, eval = F}
 library(R2jags)
 # Call JAGS from R (few hours)
 
@@ -125,7 +125,7 @@ save(out, file="model_output.RData")
 ```
 ### Exploring results
 
-```{r}
+```{r, eval = F}
 print(out)
 
 # ok, now overall slope and intercept
@@ -192,7 +192,7 @@ dev.off()
 ## 3. Model with variable selection
 For the variables `Intercept_first_clutch_double`, `InterceptYear`, `SlopeYear`) introduce additional parameters that can take values only of 1 or 0.
 ### Bayesian model
-```{r}
+```{r, eval = F}
 sink("two_truncated_Poisson_model_with_MS.jags")
 cat("
 model {
@@ -234,7 +234,7 @@ sink()
 ```
 
 ###Inits and data
-```{r}
+```{r, eval = F}
 nyears=length(unique(Res$Year))
 
 Data <- list("nrow"=nrow(Res), "nyears"=nyears, "year"=Res$Year,
@@ -262,7 +262,7 @@ params <- c("Intercept", "InterceptFirstClutchDouble", "InterceptYear",
 
 ### Model run
 This will take consideravle amount of time (a few hours), lower ```n.iter``` if you want it to finish faster!
-```{r}
+```{r, eval = F}
 library(R2jags)
 # Call JAGS from R (few hours)
 out_ms <- jags.parallel(Data, inits, params, "two_truncated_Poisson_model_with_MS.jags",
