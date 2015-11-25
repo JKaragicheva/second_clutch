@@ -54,7 +54,7 @@ model {
 
 # model
 for (row in 1:nrow) {
-log(lamda[row])<- Intercept+Intercept_first_clutch_double*FirstClutchDoubleBreeders[row]+InterceptYear[year[row]]+ #intercept
+log(lamda[row])<- Intercept+InterceptFirstClutchDouble*FirstClutchDoubleBreeders[row]+InterceptYear[year[row]]+ #intercept
     (Slope+SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
 	(Slope+SlopeYear[year[row]]+ SlopeSecondClutch)*DayDiff[row]
 }
@@ -69,7 +69,7 @@ SlopeYear[t]~dnorm(0, tau_slope)
 #w_int~dbern(0.5)
 #w_slope~dbern(0.5)
 Intercept ~ dunif(-10,10)
-Intercept_first_clutch_double ~ dunif(-10,10)
+InterceptFirstClutchDouble ~ dunif(-10,10)
 Slope ~dunif(-0.5,0.5)
 SlopeSecondClutch ~dunif(-1,1)
 
@@ -93,10 +93,10 @@ nyears=length(unique(Res$Year))
 
 Data <- list("nrow"=nrow(Res), "nyears"=nyears, "year"=Res$Year, "DayFirst"=Res$DayFirst, "DayDiff"=Res$DayDiff, "Clutch"=Res$Clutch, "FirstClutchDoubleBreeders"=Res$FirstClutchDoubleBreeders)
 
-inits <- function() list("Intercept" = runif(1,-1,3),  "Intercept_first_clutch_double"= runif(1,-1,3), "InterceptYear" = runif(nyears,-1,1), "Slope" =-runif(1,-0.5, 0.5),"SlopeYear" =runif(nyears,-1,1), "SlopeSecondClutch" =runif(1,-1,1), "sigma_intercept"=runif(1, 0,0.5), "sigma_slope"=runif(1,0,1))
+inits <- function() list("Intercept" = runif(1,-1,3),  "InterceptFirstClutchDouble"= runif(1,-1,3), "InterceptYear" = runif(nyears,-1,1), "Slope" =-runif(1,-0.5, 0.5),"SlopeYear" =runif(nyears,-1,1), "SlopeSecondClutch" =runif(1,-1,1), "sigma_intercept"=runif(1, 0,0.5), "sigma_slope"=runif(1,0,1))
 
 # Parameters monitored
-params <- c("Intercept", "Intercept_first_clutch_double", "InterceptYear", "Slope", "SlopeYear", "SlopeSecondClutch", "sigma_intercept", "sigma_slope")
+params <- c("Intercept", "InterceptFirstClutchDouble", "InterceptYear", "Slope", "SlopeYear", "SlopeSecondClutch", "sigma_intercept", "sigma_slope")
 ```
 
 ### Model run
@@ -112,46 +112,53 @@ save(out, file="model_output.RData")
 ### Exploring results
 
 ```{r}
-print(out_ms)
-#plot original data
-plot(jitter(log(Res$Clutch))~jitter(Res$DayFirst), pch=".", cex=2)
+print(out)
 
 # ok, now overall slope and intercept
-Intercept_pred<-quantile(out_ms$BUGSoutput$sims.list$Intercept, c(0.025, 0.5, 0.075)) 
-Slope_pred<-quantile(out_ms$BUGSoutput$sims.list$Slope, c(0.025, 0.5, 0.075)) 
+Intercept_pred<-quantile(out$BUGSoutput$sims.list$Intercept, c(0.025, 0.5, 0.075)) 
+Slope_pred<-quantile(out$BUGSoutput$sims.list$Slope, c(0.025, 0.5, 0.075)) 
 
-XX<-seq(min(Res$DayFirst), max(Res$DayFirst))
+XX<-seq(min(Res$DayFirst)-10, max(Res$DayFirst)+10)
 Y_main<-Intercept_pred[2]+Slope_pred[2]*XX
-lines(Y_main~XX, lwd=2)
 # now CI
 
-Y_lower<-apply(out_ms$BUGSoutput$sims.list$Slope %*% XX + out_ms$BUGSoutput$sims.list$Intercept[,1], 2, quantile, c(0.025))
+Y_lower<-apply(out$BUGSoutput$sims.list$Slope %*% XX + out$BUGSoutput$sims.list$Intercept[,1], 2, quantile, c(0.025))
 
-Y_upper<-apply(out_ms$BUGSoutput$sims.list$Slope %*% XX + out_ms$BUGSoutput$sims.list$Intercept[,1], 2, quantile, c(0.975))
+Y_upper<-apply(out$BUGSoutput$sims.list$Slope %*% XX + out$BUGSoutput$sims.list$Intercept[,1], 2, quantile, c(0.975))
 
-Y_second_clutch<-apply(out_ms$BUGSoutput$sims.list$Slope %*% XX + out_ms$BUGSoutput$sims.list$Intercept[,1]+out_ms$BUGSoutput$sims.list$Intercept_first_clutch_double[,1]+out_ms$BUGSoutput$sims.list$SlopeSecondClutch %*% XX, 2, quantile, c(0.5))
+Y_second_clutch<-apply(out$BUGSoutput$sims.list$Slope %*% XX + out$BUGSoutput$sims.list$Intercept[,1]+out$BUGSoutput$sims.list$Intercept_first_clutch_double[,1]+out$BUGSoutput$sims.list$SlopeSecondClutch %*% XX, 2, quantile, c(0.5))
 
-Y_second_clutch_upper<-apply(out_ms$BUGSoutput$sims.list$Slope %*% XX + out_ms$BUGSoutput$sims.list$Intercept[,1]+out_ms$BUGSoutput$sims.list$Intercept_first_clutch_double[,1]+out_ms$BUGSoutput$sims.list$SlopeSecondClutch %*% XX, 2, quantile, c(0.975))
-Y_second_clutch_lower<-apply(out_ms$BUGSoutput$sims.list$Slope %*% XX + out_ms$BUGSoutput$sims.list$Intercept[,1]+out_ms$BUGSoutput$sims.list$Intercept_first_clutch_double[,1]+out_ms$BUGSoutput$sims.list$SlopeSecondClutch %*% XX, 2, quantile, c(0.025))
-lines(Y_lower~XX)
-lines(Y_upper~XX)
-lines(Y_second_clutch~XX, col="red", lwd=2)
-lines(Y_second_clutch_lower~XX, col="red")
-lines(Y_second_clutch_upper~XX, col="red")
+Y_second_clutch_upper<-apply(out$BUGSoutput$sims.list$Slope %*% XX + out$BUGSoutput$sims.list$Intercept[,1]+out$BUGSoutput$sims.list$Intercept_first_clutch_double[,1]+out$BUGSoutput$sims.list$SlopeSecondClutch %*% XX, 2, quantile, c(0.975))
+Y_second_clutch_lower<-apply(out$BUGSoutput$sims.list$Slope %*% XX + out$BUGSoutput$sims.list$Intercept[,1]+out$BUGSoutput$sims.list$Intercept_first_clutch_double[,1]+out$BUGSoutput$sims.list$SlopeSecondClutch %*% XX, 2, quantile, c(0.025))
 
-# and now prediction for the second clutches..
-# this will be second clutch intercept
-plot(jitter(Res$Clutch)~jitter(Res$DayFirst), pch=".", cex=2)
-lines(exp(Y_main)~XX, lwd=2)
-lines(exp(Y_upper)~XX)
-lines(exp(Y_second_clutch)~XX, col="red", lwd=2)
-lines(exp(Y_second_clutch_lower)~XX, col="red")
-lines(exp(Y_second_clutch_upper)~XX, col="red")
+pdf("figure1.pdf")
 
-hist(out_ms$BUGSoutput$sims.list$Intercept_first_clutch_double)
-hist(out_2_trunc$BUGSoutput$sims.list$sigma2)
+plot(jitter(Res$Clutch)~jitter(Res$DayFirst), pch=".", cex=2, xlab="Time (days)", ylab="Clutch size", las=1, type="n")
+
+points(jitter(Res$Clutch)~jitter(Res$DayFirst), pch=".", cex=2, col=grey(0.2))
+
+
+polygon(c(XX, rev(XX)), exp(c(Y_upper, rev(Y_lower)))
+	, col=grey(0.4, 0.5), border=grey(0.1), lwd=2)
+#lines(exp(Y_upper)~XX)
+#lines(exp(Y_lower)~XX)
+polygon(c(XX, rev(XX)), exp(c(Y_second_clutch_upper, rev(Y_second_clutch_lower))), 
+	col=grey(0.6, alpha=0.5), border=grey(0.99), lwd=2)
+
+lines(exp(Y_main)~XX, lwd=3, col=grey(0.1))
+
+lines(exp(Y_second_clutch)~XX, col=grey(0.99), lwd=3, lty=1)
+
+
+box()
+
+dev.off()
+
+#lines(exp(Y_second_clutch_lower)~XX, lty=2)
+#lines(exp(Y_second_clutch_upper)~XX, lty=2)
 ```
-## 4. Model with variable selection
+
+## 3. Model with variable selection
 For the variables `Intercept_first_clutch_double`, `InterceptYear`, `SlopeYear`) introduce additional parameters that can take values only of 1 or 0.
 ### Bayesian model
 ```{r}
@@ -161,7 +168,7 @@ model {
 
 # model
 for (row in 1:nrow) {
-log(lamda[row])<- Intercept+w_int_double*Intercept_first_clutch_double*FirstClutchDoubleBreeders[row]+w_int*InterceptYear[year[row]]+ #intercept
+log(lamda[row])<- Intercept+w_int_double*InterceptFirstClutchDouble*FirstClutchDoubleBreeders[row]+w_int*InterceptYear[year[row]]+ #intercept
     (Slope+w_slope*SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
 	(Slope+w_slope*SlopeYear[year[row]]+ SlopeSecondClutch)*DayDiff[row]
 }
@@ -176,7 +183,7 @@ w_int_double~dbern(0.5)
 w_int~dbern(0.5)
 w_slope~dbern(0.5)
 Intercept ~ dunif(-10,10)
-Intercept_first_clutch_double ~ dunif(-10,10)
+InterceptFirstClutchDouble ~ dunif(-10,10)
 Slope ~dunif(-0.5,0.5)
 SlopeSecondClutch ~dunif(-1,1)
 
@@ -200,10 +207,10 @@ nyears=length(unique(Res$Year))
 
 Data <- list("nrow"=nrow(Res), "nyears"=nyears, "year"=Res$Year, "DayFirst"=Res$DayFirst, "DayDiff"=Res$DayDiff, "Clutch"=Res$Clutch, "FirstClutchDoubleBreeders"=Res$FirstClutchDoubleBreeders)
 
-inits <- function() list("Intercept" = runif(1,-1,3),  "Intercept_first_clutch_double"= runif(1,-1,3), "InterceptYear" = runif(nyears,-1,1), "Slope" =-runif(1,-0.5, 0.5),"SlopeYear" =runif(nyears,-1,1), "SlopeSecondClutch" =runif(1,-1,1), "sigma_intercept"=runif(1, 0,0.5), "sigma_slope"=runif(1,0,1), "w_int"=rbinom(1, 1, 0.5),"w_int_double"=rbinom(1, 1, 0.5), "w_slope"=rbinom(1, 1, 0.5))
+inits <- function() list("Intercept" = runif(1,-1,3),  "InterceptFirstClutchDouble"= runif(1,-1,3), "InterceptYear" = runif(nyears,-1,1), "Slope" =-runif(1,-0.5, 0.5),"SlopeYear" =runif(nyears,-1,1), "SlopeSecondClutch" =runif(1,-1,1), "sigma_intercept"=runif(1, 0,0.5), "sigma_slope"=runif(1,0,1), "w_int"=rbinom(1, 1, 0.5),"w_int_double"=rbinom(1, 1, 0.5), "w_slope"=rbinom(1, 1, 0.5))
 
 # Parameters monitored
-params <- c("Intercept", "Intercept_first_clutch_double", "InterceptYear", "Slope", "SlopeYear", "SlopeSecondClutch", "sigma_intercept", "sigma_slope", "w_int", "w_int_double","w_slope")
+params <- c("Intercept", "InterceptFirstClutchDouble", "InterceptYear", "Slope", "SlopeYear", "SlopeSecondClutch", "sigma_intercept", "sigma_slope", "w_int", "w_int_double","w_slope")
 ```
 
 ### Model run
@@ -214,7 +221,3 @@ library(R2jags)
 out_ms <- jags.parallel(Data, inits, params, "two_truncated_Poisson_model_with_MS.jags", n.chains = 5, n.thin = 500, n.iter = 250000, n.burnin = 50000)
 save(out_ms, file="model_selection_output.RData")
 ```
-### Results exploration
-
-
-
