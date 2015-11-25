@@ -14,6 +14,8 @@ Date: 24.11.2015
 
 License: GNU GPL v3.0
 
+Permanent address: https://github.com/eldarrak/second_clutch/blob/master/S2.rmd
+
 ## 1. Get data from Github
 ```{r}
 library(RCurl)
