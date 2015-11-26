@@ -47,7 +47,7 @@ We also center ```$jd``` but not scale it
 plot(jitter(log(Res$Clutch))~Res$DayFirst)
 ```
 
-## 3. Main model w/o model selection
+## 3. Main model w/o variable selection
 ### Bayesian model
 ```{r, eval = F}
 sink("two_truncated_Poisson_model.jags")
