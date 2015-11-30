@@ -163,12 +163,15 @@ Y_second_clutch_lower<-apply(out$BUGSoutput$sims.list$Slope %*% XX +
                              out$BUGSoutput$sims.list$SlopeSecondClutch %*% XX,
                              2, quantile, c(0.025))
 
-pdf("figure1.pdf")
+pdf("figure1_2.pdf")
 
 plot(jitter(Res$Clutch)~jitter(Res$DayFirst), pch=".", cex=2,
-      xlab="Time (days)", ylab="Clutch size", las=1, type="n", xlim=c(Res$Clutch))
+      xlab="Time (days)", ylab="Clutch size", las=1, type="n", xlim=range(Res$DayFirst+Res$DayDiff))
 
-points(jitter(Res$Clutch)~jitter(Res$DayFirst), pch=".", cex=2, col=grey(0.2))
+points(jitter(Clutch)~jitter(DayFirst), pch=".", cex=2, col=grey(0.2), data=Res[Res$SingleBreeders==1,])
+points(jitter(Clutch)~jitter(DayFirst), pch=21, col=grey(0.2), data=Res[Res$FirstClutchDoubleBreeders==1,], bg=grey(0.4))
+
+points(jitter(Clutch)~jitter(DayFirst+DayDiff), pch=21, col=grey(0.2), data=Res[Res$DayDiff>0,], bg=grey(0.9))
 
 
 polygon(c(XX, rev(XX)), exp(c(Y_upper, rev(Y_lower)))
