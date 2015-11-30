@@ -39,7 +39,8 @@ Note, that ```$datediff``` is 0 for all the first clutches.
 ```{r, eval = F}
 Res<-data.frame(Year=as.numeric(as.factor(raw_data$nseason)), 
 	DayFirst=scale(raw_data$jd, scale=F), DayDiff=raw_data$datediff,
-	Clutch=raw_data$nclutch, FirstClutchDoubleBreeders=raw_data$FirstClutchDoubleBreeders)
+	Clutch=raw_data$nclutch, SingleBreeders=ifelse(raw_data$FirstClutchDoubleBreeders==0 & raw_data$datediff==0, 1, 0),
+	FirstClutchDoubleBreeders=raw_data$FirstClutchDoubleBreeders)
 ```
 Here we make variable ```$Year``` that is just a numeric year starting from 1.
 We also center ```$jd``` but not scale it
@@ -56,9 +57,9 @@ model {
 
 # model
 for (row in 1:nrow) {
-log(lamda[row])<- Intercept+InterceptFirstClutchDouble*FirstClutchDoubleBreeders[row]+ # Intercept fixed
-      InterceptYear[year[row]]+ #Intercept random
-      (Slope+SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
+log(lamda[row])<- Intercept*SingleBreeders[row]+InterceptFirstClutchDouble*FirstClutchDoubleBreeders[row]+ # Intercept fixed
+      InterceptYear[year[row]]*SingleBreeders[row] + #Intercept random
+      (Slope+SlopeYear[year[row]])*SingleBreeders[row]*DayFirst[row] + # slope for first clutches
 	(Slope+SlopeYear[year[row]]+ SlopeSecondClutch)*DayDiff[row]
 }
 
@@ -96,6 +97,7 @@ nyears=length(unique(Res$Year))
 
 Data <- list("nrow"=nrow(Res), "nyears"=nyears, "year"=Res$Year, "DayFirst"=Res$DayFirst, 
         "DayDiff"=Res$DayDiff, "Clutch"=Res$Clutch,
+		"SingleBreeders"=SingleBreeders,
         "FirstClutchDoubleBreeders"=Res$FirstClutchDoubleBreeders)
 
 inits <- function() list("Intercept" = runif(1,-1,3),  
@@ -164,7 +166,7 @@ Y_second_clutch_lower<-apply(out$BUGSoutput$sims.list$Slope %*% XX +
 pdf("figure1.pdf")
 
 plot(jitter(Res$Clutch)~jitter(Res$DayFirst), pch=".", cex=2,
-      xlab="Time (days)", ylab="Clutch size", las=1, type="n")
+      xlab="Time (days)", ylab="Clutch size", las=1, type="n", xlim=c(Res$Clutch))
 
 points(jitter(Res$Clutch)~jitter(Res$DayFirst), pch=".", cex=2, col=grey(0.2))
 
@@ -199,9 +201,9 @@ model {
 
 # model
 for (row in 1:nrow) {
-log(lamda[row])<- Intercept+w_int_double*InterceptFirstClutchDouble*FirstClutchDoubleBreeders[row]+
-                  w_int*InterceptYear[year[row]]+ #intercept
-                  (Slope+w_slope*SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
+log(lamda[row])<- Intercept*SingleBreeders[row]+w_int_double*InterceptFirstClutchDouble*FirstClutchDoubleBreeders[row]+
+                  w_int*InterceptYear[year[row]]*SingleBreeders[row]+ #intercept
+                  (Slope+w_slope*SlopeYear[year[row]])*SingleBreeders[row]*DayFirst[row] + # slope for first clutches
 	          (Slope+w_slope*SlopeYear[year[row]]+ w_slope_second*SlopeSecondClutch)*DayDiff[row]
 }
 
@@ -238,10 +240,11 @@ sink()
 ```{r, eval = F}
 nyears=length(unique(Res$Year))
 
-Data <- list("nrow"=nrow(Res), "nyears"=nyears, "year"=Res$Year,
-             "DayFirst"=Res$DayFirst, "DayDiff"=Res$DayDiff, "Clutch"=Res$Clutch,
-             "FirstClutchDoubleBreeders"=Res$FirstClutchDoubleBreeders)
-
+Data <- list("nrow"=nrow(Res), "nyears"=nyears, "year"=Res$Year, "DayFirst"=Res$DayFirst, 
+        "DayDiff"=Res$DayDiff, "Clutch"=Res$Clutch,
+		"SingleBreeders"=SingleBreeders,
+        "FirstClutchDoubleBreeders"=Res$FirstClutchDoubleBreeders)
+		
 inits <- function() list("Intercept" = runif(1,-1,3),
                          "InterceptFirstClutchDouble"= runif(1,-1,3),
                          "InterceptYear" = runif(nyears,-1,1),
