@@ -2,7 +2,6 @@
 %\VignetteEngine{knitr}
 %\VignetteIndexEntry{Second clutch Bayesian analysis}
 -->
-
 Supplementary Materials S2 to 
 Karagicheva J., Liebers, M., Rakhimberdiev, E., Hallinger K.K., Saveliev A., A., Winkler, D. W. 2015 Differences in size between first and replacement clutches match the seasonal decline in single clutches in Tree Swallows _Tachycineta bicolor_. - Ibis 000: 000-000.
 
@@ -50,16 +49,17 @@ plot(jitter(log(Res$Clutch))~Res$DayFirst)
 
 ## 3. Main model w/o variable selection
 ### Bayesian model
-```{r, eval = F}
+```{r, eval = F, tidy=FALSE}
 sink("two_truncated_Poisson_model.jags")
 cat("
 model {
 
 # model
 for (row in 1:nrow) {
-log(lamda[row])<- Intercept+InterceptDoubleBreeders*DoubleBreeders[row]+ # Intercept fixed
-      InterceptYear[year[row]]+ #Intercept random
-      (Slope+SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
+log(lamda[row])<-
+    Intercept+InterceptDoubleBreeders*DoubleBreeders[row]+ # Intercept fixed
+    InterceptYear[year[row]]+ #Intercept random
+    (Slope+SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
 	(Slope+SlopeYear[year[row]]+ SlopeSecondClutch)*DayDiff[row]
 }
 
@@ -116,7 +116,7 @@ params <- c("Intercept", "InterceptDoubleBreeders", "InterceptYear",
 
 ### Model run
 This will take consideravle amount of time (a few hours), lower ```n.iter``` if you want it to finish faster!
-```{r, eval = F}
+```{r, eval = F, tidy=F}
 library(R2jags)
 # Call JAGS from R (few hours)
 
@@ -168,16 +168,18 @@ pdf("figure1.pdf")
 plot(jitter(Res$Clutch)~jitter(Res$DayFirst), pch=".", cex=2,
       xlab="Time (days)", ylab="Clutch size", las=1, type="n", xlim=range(Res$DayFirst+Res$DayDiff))
 
-points(jitter(Clutch)~jitter(DayFirst), pch=21, col=grey(0.2), data=Res[Res$DoubleBreeders==1 & Res$DayDiff==0,], bg=grey(0.4))
+points(jitter(Clutch)~jitter(DayFirst), pch=21, col=grey(0.2),
+    data=Res[Res$DoubleBreeders==1 & Res$DayDiff==0,], bg=grey(0.4))
 
-points(jitter(Clutch)~jitter(DayFirst+DayDiff), pch=21, col=grey(0.2), data=Res[Res$DayDiff>0,], bg=grey(0.9))
+points(jitter(Clutch)~jitter(DayFirst+DayDiff), pch=21, col=grey(0.2), 
+    data=Res[Res$DayDiff>0,], bg=grey(0.9))
 
-points(jitter(Clutch)~jitter(DayFirst), pch=".", cex=2, col=grey(0.2), data=Res[!Res$DoubleBreeders==1,])
+points(jitter(Clutch)~jitter(DayFirst), pch=".", cex=2, col=grey(0.2),
+    data=Res[!Res$DoubleBreeders==1,])
 
 polygon(c(XX, rev(XX)), exp(c(Y_upper, rev(Y_lower)))
 	, col=grey(0.4, 0.5), border=grey(0.1), lwd=2)
-#lines(exp(Y_upper)~XX)
-#lines(exp(Y_lower)~XX)
+
 polygon(c(XX, rev(XX)), exp(c(Y_second_clutch_upper, rev(Y_second_clutch_lower))), 
 	col=grey(0.6, alpha=0.5), border=grey(0.99), lwd=2)
 
@@ -195,17 +197,18 @@ dev.off()
 ## 4. Model with variable selection
 For the variables `Intercept_first_clutch_double`, `InterceptYear`, `SlopeYear`) introduce additional parameters that can take values only of 1 or 0.
 ### Bayesian model
-```{r, eval = F}
+```{r, eval = F, tidy=F}
 sink("two_truncated_Poisson_model_with_MS.jags")
 cat("
 model {
 
 # model
 for (row in 1:nrow) {
-log(lamda[row])<- Intercept+w_int_double*InterceptDoubleBreeders*DoubleBreeders[row]+
-                  w_int*InterceptYear[year[row]]+ #intercept
-                  (Slope+w_slope*SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
-	          (Slope+w_slope*SlopeYear[year[row]]+ w_slope_second*SlopeSecondClutch)*DayDiff[row]
+log(lamda[row])<-
+    Intercept+w_int_double*InterceptDoubleBreeders*DoubleBreeders[row]+
+    w_int*InterceptYear[year[row]]+ #intercept
+    (Slope+w_slope*SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
+	(Slope+w_slope*SlopeYear[year[row]]+ w_slope_second*SlopeSecondClutch)*DayDiff[row]
 }
 
 for (t in 1:nyears) {
