@@ -163,16 +163,16 @@ Y_second_clutch_lower<-apply(out$BUGSoutput$sims.list$Slope %*% XX +
                              out$BUGSoutput$sims.list$SlopeSecondClutch %*% XX,
                              2, quantile, c(0.025))
 
-pdf("figure1_2.pdf")
+pdf("figure1.pdf")
 
 plot(jitter(Res$Clutch)~jitter(Res$DayFirst), pch=".", cex=2,
       xlab="Time (days)", ylab="Clutch size", las=1, type="n", xlim=range(Res$DayFirst+Res$DayDiff))
 
-points(jitter(Clutch)~jitter(DayFirst), pch=21, col=grey(0.2), data=Res[Res$FirstClutchDoubleBreeders==1,], bg=grey(0.4))
+points(jitter(Clutch)~jitter(DayFirst), pch=21, col=grey(0.2), data=Res[Res$DoubleBreeders==1 & Res$DayDiff==0,], bg=grey(0.4))
 
 points(jitter(Clutch)~jitter(DayFirst+DayDiff), pch=21, col=grey(0.2), data=Res[Res$DayDiff>0,], bg=grey(0.9))
 
-points(jitter(Clutch)~jitter(DayFirst), pch=".", cex=2, col=grey(0.2), data=Res[Res$SingleBreeders==1,])
+points(jitter(Clutch)~jitter(DayFirst), pch=".", cex=2, col=grey(0.2), data=Res[!Res$DoubleBreeders==1,])
 
 polygon(c(XX, rev(XX)), exp(c(Y_upper, rev(Y_lower)))
 	, col=grey(0.4, 0.5), border=grey(0.1), lwd=2)
@@ -203,7 +203,7 @@ model {
 # model
 for (row in 1:nrow) {
 log(lamda[row])<- Intercept+w_int_double*InterceptDoubleBreeders*DoubleBreeders[row]+
-                  w_int*InterceptYear[year[row]]*SingleBreeders[row]+ #intercept
+                  w_int*InterceptYear[year[row]]+ #intercept
                   (Slope+w_slope*SlopeYear[year[row]])*DayFirst[row] + # slope for first clutches
 	          (Slope+w_slope*SlopeYear[year[row]]+ w_slope_second*SlopeSecondClutch)*DayDiff[row]
 }
